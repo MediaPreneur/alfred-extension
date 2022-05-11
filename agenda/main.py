@@ -19,19 +19,23 @@ iCalBuddyProg = "./iCalBuddy -tf '%H:%M' -b '*' "
 
 parameter = alfred.args() # proper decoding and unescaping of command line arguments
 
-if len(parameter) >= 1:
-    param = parameter[0]
-else:
-    param = 0
-
+param = parameter[0] if len(parameter) >= 1 else 0
 progList = []    
 
 try:
     param = int(param)
-    progList.append([iCalBuddyProg + "eventsToday+%d" % int(param), 'ical.png'])
-    progList.append([iCalBuddyProg + "tasksDueBefore:today+%d" % (int(param)+1), 'reminder.png'])
+    progList.extend(
+        (
+            [iCalBuddyProg + "eventsToday+%d" % param, 'ical.png'],
+            [
+                iCalBuddyProg + "tasksDueBefore:today+%d" % (param + 1),
+                'reminder.png',
+            ],
+        )
+    )
+
 except ValueError:
-    progList.append([iCalBuddyProg + "undatedUncompletedTasks", 'reminder.png'])
+    progList.append([f"{iCalBuddyProg}undatedUncompletedTasks", 'reminder.png'])
 
 results = []
 count = 0

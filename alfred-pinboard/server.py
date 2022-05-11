@@ -28,13 +28,13 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             logger.info("getAuthToken invalid code")
             sys.exit(0)
 
-        logger.info("request code is" + code)
+        logger.info(f"request code is{code}")
         req_data = json.dumps({
                     "consumer_key": pocket.CONSUMER_KEY, "code": code
                 })
         logger.info("Trying to get auth token")
         try:
-            resp_data = pocket.makeRequest(req_data, pocket.POCKET_API_URL + 'authorize/')
+            resp_data = pocket.makeRequest(req_data, f'{pocket.POCKET_API_URL}authorize/')
             logger.info('Token received! :'+ resp_data["access_token"])
             config['pocket_access_code']=resp_data["access_token"]
             with open(os.path.join(alfred.work(False), 'config.json'), 'w+') as myFile:

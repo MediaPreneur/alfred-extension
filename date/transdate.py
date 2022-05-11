@@ -403,7 +403,7 @@ class lunardate(date):
         """lunardate.getganzistr(locale=None) -> 3-tuple of unicode string
         Returns unicode string of ganzi from lunardate object.
         See getganzistr global function for detail."""
-        return tuple([getganzistr(i, locale) for i in self.getganzi()])
+        return tuple(getganzistr(i, locale) for i in self.getganzi())
 
     def strftime(self, format):
         """lunardate.strftime(format) -> string

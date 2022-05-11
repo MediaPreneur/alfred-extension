@@ -30,16 +30,20 @@ params = urllib.urlencode({
 data = urllib.urlopen(url, params).read()
 resultData = json.loads(data)['results']
 
-results = []
+results = [
+    alfred.Item(
+        title=u"Search apps with keyword \"%s\"" % "".join(searchTerm),
+        subtitle=u"Search Mac AppStore",
+        attributes={
+            'uid': alfred.uid(0),
+            'arg': f"macappstore://ax.search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?q={searchTerm}",
+        },
+        icon=u"icon.png",
+    )
+]
 
-results.append(alfred.Item(title=u"Search apps with keyword \"%s\"" % "".join(searchTerm),
-                           subtitle=u"Search Mac AppStore",
-                           attributes= {'uid':alfred.uid(0),
-                                        'arg':u"macappstore://ax.search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?q=%s"% searchTerm },
-                           icon=u"icon.png"
-                           ))
 
-for (idx,e) in enumerate(itertools.islice(resultData, MAX_RESULT)):
+for e in itertools.islice(resultData, MAX_RESULT):
     if ALBUTM_ICON:
         imageurl = e['artworkUrl60']
         filepath = os.path.join(alfred.work(True), str(e['trackId'])+".png")
@@ -53,8 +57,9 @@ for (idx,e) in enumerate(itertools.islice(resultData, MAX_RESULT)):
         averageUserRating = e['averageUserRating']
     except KeyError:
         averageUserRating = u"no data"
-        
-    subtitle = "%s, Price: %s, Rating : %s" % (e['artistName'], e['formattedPrice'], averageUserRating)
+
+    subtitle = f"{e['artistName']}, Price: {e['formattedPrice']}, Rating : {averageUserRating}"
+
     results.append(alfred.Item(title=e['trackName'],subtitle=subtitle,
                                attributes={'arg':macAppStoreUrl%e['trackId']},
                                icon=imageurl))

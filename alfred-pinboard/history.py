@@ -35,18 +35,23 @@ if __name__ == '__main__':
         q = unicodedata.normalize('NFC', q)
     except:
         q = ""
-    
+
     history = main.history_data()
 
     if sys.argv[1] == "search":
-        results = []
         history.sort(cmp=compare_key,reverse=False)
-        for h in history:
-            if q=="" or q in h[1]:
-                results.append(alfred.Item(title=(h[4] and main.STAR or "")+h[1]+" (%d)"%h[2],
-                                           # // subtitle=time.strftime('%Y.%m.%d %H:%M:%S', time.localtime(h[3])),
-                                           subtitle = util.pretty_date(h[3]),
-                                           attributes={'arg':h[1]}, icon="icon.png"))
+        results = [
+            alfred.Item(
+                title=(h[4] and main.STAR or "") + h[1] + " (%d)" % h[2],
+                # // subtitle=time.strftime('%Y.%m.%d %H:%M:%S', time.localtime(h[3])),
+                subtitle=util.pretty_date(h[3]),
+                attributes={'arg': h[1]},
+                icon="icon.png",
+            )
+            for h in history
+            if not q or q in h[1]
+        ]
+
         alfred.write(alfred.xml(results,maxresults=20))
     elif sys.argv[1] == "delete":
         for h in history:

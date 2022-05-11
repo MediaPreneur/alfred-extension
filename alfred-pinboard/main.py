@@ -79,8 +79,8 @@ def launch_history():
 
 def update_history(category,q,nums):
     if q=="" or nums==0: return
-    if category != "all" and category != 'tags': return
-    
+    if category not in ["all", 'tags']: return
+
     history = history_data()
     now = int(time.time())
     found = None
@@ -97,18 +97,27 @@ def update_history(category,q,nums):
 
     if found:
         found[2:4] = (nums,now)
-    else:
-        if category == "all":
-            history.append(["pba",q,nums,now,False])
-        elif category == "tags":
-            history.append(["pbtag",q,nums,now,False])
+    elif category == "all":
+        history.append(["pba",q,nums,now,False])
+    elif category == "tags":
+        history.append(["pbtag",q,nums,now,False])
 
     with open(os.path.join(alfred.work(False), 'search-history.json'), 'w+') as myFile:
         myFile.write(json.dumps(history))
 
 def help():
-    result = []
-    result.append(alfred.Item(title='Look up Documentation', subtitle='Goto project site', attributes={'arg':'https://github.com/jmjeong/alfred-extension/blob/master/alfred-pinboard/README.md','uid':alfred.uid(0)}, icon="icon.png"))
+    result = [
+        alfred.Item(
+            title='Look up Documentation',
+            subtitle='Goto project site',
+            attributes={
+                'arg': 'https://github.com/jmjeong/alfred-extension/blob/master/alfred-pinboard/README.md',
+                'uid': alfred.uid(0),
+            },
+            icon="icon.png",
+        )
+    ]
+
     result.append(alfred.Item(title='pbauth username:token', subtitle='set pinboard authentication token', attributes={'valid':'no','uid':alfred.uid(1)}, icon="icon.png"))
     result.append(alfred.Item(title='pbreload', subtitle='load latest bookmarks from pinboard.in', attributes={'valid':'no','uid':alfred.uid(2)}, icon="icon.png"))
     result.append(alfred.Item(title='pba query', subtitle='search all fields of bookmarks', attributes={'valid':'no','uid':alfred.uid(3)}, icon="icon.png"))
@@ -165,7 +174,7 @@ def pbnote(notes,config,deleted_url,q):
 
     for n in notes['notes']:
         try:
-            url = "https://notes.pinboard.in/u:%s/%s"%(config['pinboard_username'],n['id'])
+            url = f"https://notes.pinboard.in/u:{config['pinboard_username']}/{n['id']}"
         except KeyError:
             url = "https://notes.pinboard.in/"
         if url in map(lambda x:x.lower(), deleted_url): continue
@@ -178,7 +187,7 @@ def pbnote(notes,config,deleted_url,q):
             text = n['text'].lower()
         except:
             text = ""
-        
+
         if not q:
             results.append({'title':n['title'],'url':url,'subtitle':text,'time':n['created_at']})
         else:
@@ -190,7 +199,12 @@ def pbnote(notes,config,deleted_url,q):
     results.sort(key=lambda s:s['time'],reverse=True)
     resultData = [alfred.Item(title=f['title'], subtitle=f['subtitle'], attributes={'arg':f['url'],'uid':alfred.uid(idx)}, icon="item.png") for (idx,f) in enumerate(results)]
     resultData.insert(0,alfred.Item(title="Notes: %d items"%len(results), subtitle="", attributes={'valid':'no','uid':alfred.uid('t')}, icon="icon.png"))
-    pinboard_url = q and 'https://pinboard.in/search/?query=%s&mine=Search+Mine'%q.replace(' ','+') or 'https://notes.pinboard.in/'
+    pinboard_url = (
+        q
+        and f"https://pinboard.in/search/?query={q.replace(' ', '+')}&mine=Search+Mine"
+        or 'https://notes.pinboard.in/'
+    )
+
     pinboard_title = q and 'Search \'%s\' in pinboard.in'%q or 'Goto Pinboard Notes'
     resultData.append(alfred.Item(title=pinboard_title, subtitle=pinboard_url, attributes={'arg':pinboard_url}, icon="icon.png"))
     alfred.write(alfred.xml(resultData,maxresults=None))
@@ -236,20 +250,24 @@ def total_num(pins,deleted_url,tags_list,category):
         tag_set = set(tags.split(' '))
         if tags_list and tag_set.isdisjoint(tags_list): continue
 
-        if category=='toread':
-            if toread=='yes':            
-                count += 1
-        elif category=='star':
-            if p['href'] in starred_url:
-                count += 1
-        else:
+        if (
+            category == 'star'
+            and p['href'] in starred_url
+            or category != 'star'
+            and category == 'toread'
+            and toread == 'yes'
+            or category not in ['star', 'toread']
+        ):
             count += 1
     return str(count)
 
 def add_result(results,description,url,tags,starred_url,launch_hist_url):
     title = (url in starred_url and STAR or "")+description
     last_access = (url in launch_hist_url and launch_hist_url[url][1] or 0)
-    last_click = (url in launch_hist_url and " +"+str(launch_hist_url[url][0]) or "")
+    last_click = (
+        url in launch_hist_url and f" +{str(launch_hist_url[url][0])}" or ""
+    )
+
     results.append({'title':title,'url':url,'tags':tags,'last_access':last_access,'click':last_click})
     
 def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list,q,full_query,category,sort_option):
@@ -259,10 +277,10 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
     for p in pins:
         url = p['href'].lower()
         if url in map(lambda x:x.lower(), deleted_url): continue
-        
+
         title = p['description'].lower()
         extended = p['extended'].lower()
-        
+
         try:
             tags = p['tags'].lower()
         except:
@@ -272,20 +290,13 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
         tag_set = set(tags.split(' '))
         if tags_list and tag_set.isdisjoint(tags_list): continue
 
-        tagstring = tags and "("+", ".join(map(lambda a:'#'+a, tags.split(' ')))+")" or "(none)"
-        if not q:
-            if category=='toread':
-                if toread=='yes':
-                    add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
-            elif category=='star':
-                if p['href'] in starred_url:
-                    add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
-            elif category=='log':
-                if p['href'] in launch_hist_url:
-                    add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
-            else:
-                add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
-        else:
+        tagstring = (
+            tags
+            and "(" + ", ".join(map(lambda a: f'#{a}', tags.split(' '))) + ")"
+            or "(none)"
+        )
+
+        if q:
             for qi in qs:
                 if category=='all' and all(qsi and pred(qsi,[title,extended,tags]) for qsi in qi.split(' ')):
                     add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
@@ -302,12 +313,25 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
                 elif category=='link' and any(qsi and pred(qsi,[url]) for qsi in qi.split(' ')):
                     add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
                     break
+        elif (
+            category == 'toread'
+            and toread == 'yes'
+            or category != 'toread'
+            and category == 'star'
+            and p['href'] in starred_url
+            or category != 'toread'
+            and category != 'star'
+            and category == 'log'
+            and p['href'] in launch_hist_url
+            or category not in ['toread', 'star', 'log']
+        ):
+            add_result(results,p['description'],p['href'],tagstring,starred_url,launch_hist_url)
         if PIN_MAX_RESULT>0 and len(results)>=PIN_MAX_RESULT: break
     logger.info(category)
-    if sort_option=='a' or sort_option=='ㅇ': results = sorted(results, key=lambda k:k['title'])
-    elif sort_option=='z' or sort_option=='ㅁ': results = sorted(results, key=lambda k:k['title'],reverse=True)
-    elif sort_option=='d' or sort_option=='ㅣ': results.reverse()
-    elif sort_option=='l' or sort_option=='ㅈ': results = sorted(results, key=lambda k:k['last_access'],reverse=True)
+    if sort_option in ['a', 'ㅇ']: results = sorted(results, key=lambda k:k['title'])
+    elif sort_option in ['z', 'ㅁ']: results = sorted(results, key=lambda k:k['title'],reverse=True)
+    elif sort_option in ['d', 'ㅣ']: results.reverse()
+    elif sort_option in ['l', 'ㅈ']: results = sorted(results, key=lambda k:k['last_access'],reverse=True)
     resultData = [alfred.Item(title=f['title'], subtitle=urlparse.urlparse(f['url'])[1]+"   "+f['tags']+f['click'],
                               attributes={'arg':f['url'],'uid':alfred.uid(idx)}, icon="item.png") for (idx,f) in enumerate(results)]
     try:
@@ -315,7 +339,7 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
     except:
         last_updated = 0
     subtitle = "Last updated: "+(last_updated and util.pretty_date(config['last_updated']) or "no info")
-    
+
     diff = int(time.time())-last_updated
     if diff > RELOAD_ASK_THRESHOLD:
         resultData.insert(0,alfred.Item(title="Links: %d items - Reload pinboard data?"%len(results), subtitle=subtitle,
@@ -323,7 +347,12 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
     else:
         resultData.insert(0,alfred.Item(title="Links: %d items"%len(results), subtitle=subtitle,
                                         attributes={'valid':'no','uid':alfred.uid('t')}, icon="icon.png"))
-    pinboard_url = q and 'https://pinboard.in/search/?query=%s&mine=Search+Mine'%q.replace(' ','+') or 'https://pinboard.in/'
+    pinboard_url = (
+        q
+        and f"https://pinboard.in/search/?query={q.replace(' ', '+')}&mine=Search+Mine"
+        or 'https://pinboard.in/'
+    )
+
     pinboard_title = q and 'Search \'%s\' in pinboard.in'%q or 'Goto Pinboard'
     resultData.append(alfred.Item(title=pinboard_title, subtitle=pinboard_url, attributes={'arg':pinboard_url}, icon="icon.png"))
     alfred.write(alfred.xml(resultData,maxresults=None))
@@ -331,9 +360,19 @@ def process_search(pins,config,deleted_url,starred_url,launch_hist_url,tags_list
     return
 
 def process_sortoption(q):
-    result = []
-    result.append(alfred.Item(title='last accessed time', subtitle='^l ',
-                              attributes={'valid':'no','autocomplete':q+(q and " " or "")+'^l ','uid':alfred.uid(4)}, icon="num-des.png"))
+    result = [
+        alfred.Item(
+            title='last accessed time',
+            subtitle='^l ',
+            attributes={
+                'valid': 'no',
+                'autocomplete': q + (q and " " or "") + '^l ',
+                'uid': alfred.uid(4),
+            },
+            icon="num-des.png",
+        )
+    ]
+
     result.append(alfred.Item(title='time ascending', subtitle='^d ',
                               attributes={'valid':'no','autocomplete':q+(q and " " or "")+'^d ','uid':alfred.uid(1)}, icon="general-des.png"))
     result.append(alfred.Item(title='title ascending', subtitle='^a ',
@@ -353,7 +392,7 @@ def pbsearch(pins,config,deleted_url,starred_url,launch_hist_url,q,category):
         q = sort_re.sub('', q)
     elif category=='log':
         sort_option = 'l'
-        
+
     last_q = q.split(' ')[-1]
     if last_q.startswith('^') or last_q.startswith('!'):      # sort option
         process_sortoption(" ".join(q.split(' ')[:-1]))
@@ -366,15 +405,22 @@ def pbsearch(pins,config,deleted_url,starred_url,launch_hist_url,q,category):
         tag_list = [t[1:].lower() for t in tags.split(' ') if t.startswith('#')]
         # logger.error('taglist = %s, query=[%s]', tag_list,query)
         process_search(pins,config,deleted_url,starred_url,launch_hist_url,tag_list,query.strip(),full_query,category,sort_option)
-    elif '#' in q and ':' not in q:
-        expand_str = q.strip()+' : '
+    elif '#' in q:
+        expand_str = f'{q.strip()} : '
         tag_list = [t[1:].lower() for t in q.split(' ') if t.startswith('#')]
-        resultData = [alfred.Item(title="Selected Category ("+total_num(pins,deleted_url,tag_list,category)+")",
-                                  subtitle="# or : or Enter",
-                                  attributes={'uid':alfred.uid(0),
-                                              'autocomplete':expand_str,
-                                              'valid':'no'},
-                                  icon="item.png")]
+        resultData = [
+            alfred.Item(
+                title=f"Selected Category ({total_num(pins, deleted_url, tag_list, category)})",
+                subtitle="# or : or Enter",
+                attributes={
+                    'uid': alfred.uid(0),
+                    'autocomplete': expand_str,
+                    'valid': 'no',
+                },
+                icon="item.png",
+            )
+        ]
+
         alfred.write(alfred.xml(resultData,maxresults=None))
     else:
         process_search(pins,config,deleted_url,starred_url,launch_hist_url,[],q.strip(),full_query,category,sort_option)

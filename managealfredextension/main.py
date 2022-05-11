@@ -36,12 +36,12 @@ hotmod = {
 
 def process(query):
     dirname = os.path.dirname(os.path.abspath('.'))
-    
+
     dirs = [f for f in os.listdir(dirname) if os.path.isdir(os.path.join(dirname, f))]
 
     results = []
 
-    for (idx,d) in enumerate(dirs):
+    for d in dirs:
         try:
             plist = plistlib.readPlist(os.path.join(dirname, d, 'info.plist'))
         except:
@@ -55,7 +55,12 @@ def process(query):
         except KeyError:
             keyword = ""
 
-        if not query in title.lower().replace(" ","") + createdby.lower().replace(" ","") + keyword.lower():
+        if (
+            query
+            not in title.lower().replace(" ", "")
+            + createdby.lower().replace(" ", "")
+            + keyword.lower()
+        ):
             continue
 
         try:
@@ -68,8 +73,8 @@ def process(query):
 
         if keyword or hotkeys:
             if hotkeys: keyword += " : "
-                
-            keyword = " (" + keyword + hotkeys + ")"
+
+            keyword = f" ({keyword}{hotkeys})"
 
         displayTitle = title + (' - disabled' if disabled else '')
 

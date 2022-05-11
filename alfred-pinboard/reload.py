@@ -27,7 +27,8 @@ def note_list_cache():
 def note_list_server(user,token):
     try:
         time.sleep(3)
-        url = 'https://api.pinboard.in/v1/notes/list?format=json&auth_token=%s:%s'%(user,token)
+        url = f'https://api.pinboard.in/v1/notes/list?format=json&auth_token={user}:{token}'
+
         data = urllib.urlopen(url)
         return json.load(data)
     except IOError:

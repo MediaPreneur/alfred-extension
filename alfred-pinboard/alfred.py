@@ -90,5 +90,5 @@ def _create(path):
     if not os.path.isdir(path):
         os.mkdir(path)
     if not os.access(path, os.W_OK):
-        raise IOError('No write access: %s' % path)
+        raise IOError(f'No write access: {path}')
     return path

@@ -11,15 +11,13 @@ def makeRequest(request_data, request_url):
     request_headers = {'Content-Type': 'application/json; charset=UTF-8', 'X-Accept': 'application/json'}
     request = urllib2.Request(request_url, request_data, request_headers)
     response = urllib2.urlopen(request)
-    data = json.load(response)
-    return data
+    return json.load(response)
 
 def getRequestCode():
     req_data = json.dumps({
         'consumer_key':CONSUMER_KEY, 'redirect_uri':REDIRECT_URI
         })
-    resp_data = makeRequest(req_data, POCKET_API_URL+'request/')
-    return resp_data
+    return makeRequest(req_data, f'{POCKET_API_URL}request/')
 
 
 def addpocket(q):

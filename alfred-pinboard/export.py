@@ -55,10 +55,7 @@ def get_title(info_file):
     return title
 
 def should_ignore_pattern(name):
-    for pattern in ignore_patterns:
-        if fnmatch.fnmatch(name, pattern):
-            return True
-    return False
+    return any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)
 
 def get_files(dirname):
     files = []
@@ -76,20 +73,20 @@ def do_archive(dirname, filename):
 
     with zipfile.ZipFile(filename, 'w') as z:
         for f in files:
-            relfile = f.replace(dirname+"/", '')
+            relfile = f.replace(f"{dirname}/", '')
             z.write(f, relfile)
     z.close()
 
 def do_src_archive(dirname, targetdir):
     if dirname == targetdir:
         return
-    
+
     files = get_files(dirname)
     for f in files:
-        relfile = f.replace(dirname+"/", '')
+        relfile = f.replace(f"{dirname}/", '')
         if os.path.dirname(relfile):
             alfred._create(os.path.join(targetdir, os.path.dirname(relfile)))
-            
+
         shutil.copy(f, os.path.join(targetdir, os.path.dirname(relfile)))
     
 

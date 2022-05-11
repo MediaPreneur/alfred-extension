@@ -39,7 +39,7 @@ def main():
         q = unicodedata.normalize('NFC', q).lower().replace(' ','')
     except:
         q = ""
-        
+
     rss = rss_data()
     config = config_data()
     try:
@@ -47,17 +47,23 @@ def main():
     except:
         max_results = None
 
-    results = []
-    for e in itertools.islice(rss,max_results):
-        if not q or q in e['title'].lower().replace(' ',''):
-            results.append(alfred.Item(title=e['title'],subtitle=e['published'],attributes={'arg':e['link']},icon=e['image']))
+    results = [
+        alfred.Item(
+            title=e['title'],
+            subtitle=e['published'],
+            attributes={'arg': e['link']},
+            icon=e['image'],
+        )
+        for e in itertools.islice(rss, max_results)
+        if not q or q in e['title'].lower().replace(' ', '')
+    ]
 
     try:
         last_updated = config['last_updated']
     except:
         last_updated = 0
     subtitle = "Last updated: "+(last_updated and util.pretty_date(config['last_updated']) or "no info")
-    
+
     diff = int(time.time())-last_updated
     if diff > RELOAD_ASK_THRESHOLD or len(rss) == 0:
         results.insert(0,alfred.Item(title="BackToTheMac - Reload Data?", subtitle=subtitle,
@@ -65,7 +71,7 @@ def main():
     else:
         results.insert(0,alfred.Item(title="BackToTheMac", subtitle=subtitle,
                                      attributes={'arg':'http://macnews.tistory.com','uid':alfred.uid('t')}, icon="icon.png"))
-    
+
     alfred.write(alfred.xml(results, maxresults=None))
 
 if __name__ == '__main__':
